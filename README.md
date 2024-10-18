@@ -1,0 +1,2 @@
+# kumys-coin
+Hackathon rep
