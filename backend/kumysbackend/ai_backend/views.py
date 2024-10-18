@@ -35,3 +35,31 @@ class Recommendations(APIView):
             "result": "success",
             "recommendations": [],
         })
+
+
+class Analyze(APIView):
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_STRING,
+        ),
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "result": openapi.Schema(type=openapi.TYPE_STRING),
+                    "analytics":  openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_STRING),
+                    ),
+                }
+            )
+        }
+    )
+    def post(self, request):
+        image = request.data
+
+        return Response({
+            "result": "success",
+            "analytics": [],
+        })
