@@ -37,7 +37,7 @@ func main() {
 	b.Handle(tele.OnText, func(c tele.Context) error {
 		text := c.Text()
 
-		resp, err := aiClient.GetRecommendations(getDefaultContext(), text)
+		resp, err := aiClient.GetDiagnosises(getDefaultContext(), text)
 		if err != nil {
 			return err
 		}
@@ -49,6 +49,22 @@ func main() {
 		}
 
 		return nil
+	})
+
+	b.Handle(tele.OnPhoto, func(c tele.Context) error {
+		photo := c.Message().Photo
+
+		file, err := b.File(&photo.File)
+		if err != nil {
+			return err
+		}
+
+		resp, err := aiClient.SendAnalysis(getDefaultContext(), file)
+		if err != nil {
+			return err
+		}
+
+		return c.Send(resp.Text)
 	})
 
 	slog.Info("starting tgbot")

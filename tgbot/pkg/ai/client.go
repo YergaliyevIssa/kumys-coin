@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/go-resty/resty/v2"
@@ -32,7 +33,7 @@ type GetRecommendationsResponse struct {
 	Recommendations []Recommendation `json:"recommendations"`
 }
 
-func (c *Client) GetRecommendations(
+func (c *Client) GetDiagnosises(
 	ctx context.Context,
 	userInput string,
 ) (GetRecommendationsResponse, error) {
@@ -44,13 +45,39 @@ func (c *Client) GetRecommendations(
 			Text: userInput,
 		}).
 		SetResult(&respObj).
-		Post("/api/v1/ai_backend/recommendations")
+		Post("/api/v1/ai_backend/diagnosis")
 	if err != nil {
 		return GetRecommendationsResponse{}, err
 	}
 
 	if resp.StatusCode() != http.StatusOK {
-		return GetRecommendationsResponse{}, fmt.Errorf("unexpected status code: %s", resp.Body())
+		return GetRecommendationsResponse{}, fmt.Errorf("get diagnosis: unexpected status code: %s", resp.Body())
+	}
+
+	return respObj, nil
+}
+
+type GetAnalysisResponse struct {
+	Text string `json:"text"`
+}
+
+func (c *Client) SendAnalysis(
+	ctx context.Context,
+	photo io.ReadCloser,
+) (GetAnalysisResponse, error) {
+	var respObj GetAnalysisResponse
+
+	resp, err := c.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(photo).
+		SetResult(&respObj).
+		Post("/api/v1/ai_backend/analysis")
+	if err != nil {
+		return GetAnalysisResponse{}, err
+	}
+
+	if resp.StatusCode() != http.StatusOK {
+		return GetAnalysisResponse{}, fmt.Errorf("send analysis unexpected status code: %s", resp.Body())
 	}
 
 	return respObj, nil

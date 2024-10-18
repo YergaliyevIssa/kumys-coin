@@ -12,8 +12,16 @@ all: format build test lint
 build: bindir
 	go build -o ${BINDIR}/app ${PACKAGE}
 
+test:
+	go test ./...
+
 run: config
 	go run ${PACKAGE}
+
+bindir:
+	mkdir -p ${BINDIR}
+
+LOCAL_BIN:=$(CURDIR)/bin
 
 .PHONY: .bin-deps
 .bin-deps:
