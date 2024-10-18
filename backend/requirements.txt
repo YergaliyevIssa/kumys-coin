@@ -3,3 +3,4 @@ djangorestframework==3.14
 psycopg[binary]==3.1.20
 requests
 drf-yasg
+google-generativeai

@@ -30,7 +30,7 @@ type Recommendation string
 
 type GetRecommendationsResponse struct {
 	Result          string           `json:"result"`
-	Recommendations []Recommendation `json:"recommendations"`
+	Recommendations []string `json:"recommendations"`
 }
 
 func (c *Client) GetDiagnosises(
@@ -45,7 +45,7 @@ func (c *Client) GetDiagnosises(
 			Text: userInput,
 		}).
 		SetResult(&respObj).
-		Post("/api/v1/ai_backend/diagnosis")
+		Post("/api/v1/ai_backend/diagnose/")
 	if err != nil {
 		return GetRecommendationsResponse{}, err
 	}
