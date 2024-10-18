@@ -1,12 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
 	"time"
 
 	tele "gopkg.in/telebot.v4"
+)
+
+const (
+	BotName = "SuperAppteka"
 )
 
 func main() {
@@ -21,8 +26,8 @@ func main() {
 		return
 	}
 
-	b.Handle("/hello", func(c tele.Context) error {
-		return c.Send("Hello!")
+	b.Handle("/start", func(c tele.Context) error {
+		return c.Send(getWelcomeMessage())
 	})
 
 	b.Handle(tele.OnText, func(c tele.Context) error {
@@ -30,10 +35,15 @@ func main() {
 		// captured by existing handlers.
 		text := c.Text()
 
-		// Instead, prefer a context short-hand:
 		return c.Send(text)
 	})
 
 	slog.Info("starting tgbot")
 	b.Start()
+}
+
+func getWelcomeMessage() string {
+	return fmt.Sprintf("Добро пожаловать в %s!\n"+
+		`Здесь вы можете найти рекомендации по лечению различных заболеваний, а также полезную информацию о таблетках и лекарствах. Просто задайте свой вопрос, и я помогу вам разобраться!`,
+		BotName)
 }
