@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"kumys-coin/tgbot/pkg/ai"
 	"log"
 	"log/slog"
 	"os"
@@ -26,16 +28,27 @@ func main() {
 		return
 	}
 
+	aiClient := ai.NewClient(os.Getenv("AI_BASE_URL"))
+
 	b.Handle("/start", func(c tele.Context) error {
 		return c.Send(getWelcomeMessage())
 	})
 
 	b.Handle(tele.OnText, func(c tele.Context) error {
-		// All the text messages that weren't
-		// captured by existing handlers.
 		text := c.Text()
 
-		return c.Send(text)
+		resp, err := aiClient.GetRecommendations(getDefaultContext(), text)
+		if err != nil {
+			return err
+		}
+
+		for _, item := range resp.Recommendations {
+			if err = c.Send(item); err != nil {
+				slog.Error("send failed", "err", err)
+			}
+		}
+
+		return nil
 	})
 
 	slog.Info("starting tgbot")
@@ -46,4 +59,9 @@ func getWelcomeMessage() string {
 	return fmt.Sprintf("Добро пожаловать в %s!\n"+
 		`Здесь вы можете найти рекомендации по лечению различных заболеваний, а также полезную информацию о таблетках и лекарствах. Просто задайте свой вопрос, и я помогу вам разобраться!`,
 		BotName)
+}
+
+func getDefaultContext() context.Context {
+	ctx, _ := context.WithTimeout(context.Background(), time.Minute)
+	return ctx
 }
