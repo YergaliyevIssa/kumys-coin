@@ -26,6 +26,7 @@ const (
 const (
 	SectionMainWelcome     = `На что жалуйтесь?`
 	SectionAnalysisWelcome = `В этой секции вы можете отправить свои анализы (фото, скрины)`
+	DoctorsPreText         = `На основе Ваших данных, мы рекомендуем обратиться к терапевту. Вот специалисты из Вашего города, к которым вы можете записаться.`
 )
 
 func main() {
@@ -173,14 +174,18 @@ func main() {
 				}
 			}
 
+			if err := c.Send(DoctorsPreText); err != nil {
+				slog.Error("send doctor pre text", "err", err)
+			}
+
 			for _, doctor := range doctors.Doctors {
+				slog.Info("photo url", "path", doctor.PhotoURL)
 				// Create a photo from a URL
-				photo := &tele.Photo{File: tele.FromURL(doctor.PhotoURL)}
+				photo := &tele.Photo{File: tele.FromDisk(doctor.PhotoURL)}
 
 				// Send the photo with a caption
 				if err := c.Send(&tele.Photo{
-					File:    photo.File,
-					Caption: "This is a photo sent from a URL!",
+					File: photo.File,
 				}); err != nil {
 					slog.Error("send photo", "err", err)
 				}

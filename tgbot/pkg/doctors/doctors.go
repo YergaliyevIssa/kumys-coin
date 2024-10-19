@@ -40,7 +40,7 @@ var Doctors = []Doctor{
 		Clinic:       "Ayala",
 		Address:      "ул. Туркестан, 28/2, Есильский район, Левый берег, Астана",
 		Phone:        "+7 708 515 7812",
-		PhotoURL:     "file://" + os.Getenv("PWD") + "pkg/doctors/dr_timur.jpg",
+		PhotoURL:     os.Getenv("PWD") + "/pkg/doctors/dr_timur.jpg",
 	},
 	{
 		Name:         "Елтай Айгерім",
@@ -51,6 +51,6 @@ var Doctors = []Doctor{
 		Clinic:       "INFINITY LIFE",
 		Address:      "проспект Кабанбай батыр, 40, Есильский район, Левый берег, Астана",
 		Phone:        "+7 777 651 45 55",
-		PhotoURL:     "file://" + os.Getenv("PWD") + "pkg/doctors/dr_aigerim.jpg",
+		PhotoURL:     os.Getenv("PWD") + "/pkg/doctors/dr_aigerim.jpg",
 	},
 }
