@@ -3,17 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"html"
 	"kumys-coin/tgbot/pkg/ai"
 	"kumys-coin/tgbot/pkg/consts"
 	"kumys-coin/tgbot/pkg/session"
 	"log"
 	"log/slog"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/dgraph-io/badger/v3"
-	"gopkg.in/telebot.v4"
 	tele "gopkg.in/telebot.v4"
 )
 
@@ -110,7 +109,7 @@ func main() {
 
 		safeText := escapeMarkdown(markdownText)
 
-		return c.Send(safeText, telebot.ModeMarkdownV2)
+		return c.Send(safeText, &tele.SendOptions{ParseMode: tele.ModeMarkdown})
 	})
 
 	// Handle analysis button
@@ -165,9 +164,7 @@ func main() {
 
 			slog.Info("send diagnoses", "userID", c.Sender().ID, "diagnoses", resp.Diagnosises)
 			for _, item := range resp.Diagnosises {
-				if err = c.Send(escapeMarkdown(item), menu, &telebot.SendOptions{
-					ParseMode: telebot.ModeMarkdownV2,
-				}); err != nil {
+				if err = c.Send(escapeMarkdown(item), menu, &tele.SendOptions{ParseMode: tele.ModeMarkdown}); err != nil {
 					slog.Error("send failed", "err", err)
 				}
 			}
@@ -206,9 +203,7 @@ func main() {
 			}
 
 			slog.Info("send analysis", "userID", c.Sender().ID, "analytics", resp.Analytics)
-			return c.Send(escapeMarkdown(resp.Analytics), menu, &telebot.SendOptions{
-				ParseMode: telebot.ModeMarkdownV2,
-			})
+			return c.Send(escapeMarkdown(resp.Analytics), menu, &tele.SendOptions{ParseMode: tele.ModeMarkdown})
 		}
 
 		return c.Send("...", menu)
@@ -230,9 +225,5 @@ func getDefaultContext() context.Context {
 }
 
 func escapeMarkdown(text string) string {
-	specialChars := []string{"_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"}
-	for _, char := range specialChars {
-		text = strings.ReplaceAll(text, char, "\\"+char)
-	}
-	return text
+	return html.EscapeString(text)
 }
