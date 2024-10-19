@@ -6,6 +6,7 @@ import (
 	"html"
 	"kumys-coin/tgbot/pkg/ai"
 	"kumys-coin/tgbot/pkg/consts"
+	"kumys-coin/tgbot/pkg/doctors"
 	"kumys-coin/tgbot/pkg/session"
 	"log"
 	"log/slog"
@@ -24,6 +25,7 @@ const (
 const (
 	SectionMainWelcome     = `На что жалуетесь?`
 	SectionAnalysisWelcome = `В этой секции вы можете отправить свои анализы (фото, скрины)`
+	DoctorsPreText         = `На основе Ваших данных, мы рекомендуем обратиться к терапевту. Вот специалисты из Вашего города, к которым вы можете записаться.`
 )
 
 func main() {
@@ -143,6 +145,13 @@ func main() {
 		return c.Send(profile, &tele.SendOptions{ParseMode: tele.ModeMarkdown}, profileMenu)
 	})
 
+	b.Handle("/echo", func(c tele.Context) error {
+		text := c.Text()
+
+		slog.Info("got text", "text", text)
+		return c.Send(fmt.Sprintf("* привет *"), &tele.SendOptions{ParseMode: tele.ModeMarkdownV2})
+	})
+
 	b.Handle(tele.OnText, func(c tele.Context) error {
 		session, err := sessionRepo.GetSession(fmt.Sprintf("%d", c.Sender().ID))
 		if err != nil {
@@ -166,6 +175,27 @@ func main() {
 			for _, item := range resp.Diagnosises {
 				if err = c.Send(escapeMarkdown(item), menu, &tele.SendOptions{ParseMode: tele.ModeMarkdown}); err != nil {
 					slog.Error("send failed", "err", err)
+				}
+			}
+
+			if err := c.Send(DoctorsPreText); err != nil {
+				slog.Error("send doctor pre text", "err", err)
+			}
+
+			for _, doctor := range doctors.Doctors {
+				slog.Info("photo url", "path", doctor.PhotoURL)
+				// Create a photo from a URL
+				photo := &tele.Photo{File: tele.FromDisk(doctor.PhotoURL)}
+
+				// Send the photo with a caption
+				if err := c.Send(&tele.Photo{
+					File: photo.File,
+				}); err != nil {
+					slog.Error("send photo", "err", err)
+				}
+
+				if err := c.Send(doctor.String()); err != nil {
+					slog.Error("send doctor info", "err", err)
 				}
 			}
 
