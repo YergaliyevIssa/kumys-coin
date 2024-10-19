@@ -4,16 +4,20 @@ import (
 	"context"
 	"fmt"
 	"kumys-coin/tgbot/pkg/ai"
+	"kumys-coin/tgbot/pkg/consts"
+	"kumys-coin/tgbot/pkg/session"
 	"log"
 	"log/slog"
 	"os"
 	"time"
 
+	"github.com/dgraph-io/badger"
 	tele "gopkg.in/telebot.v4"
 )
 
 const (
-	BotName = "SuperAppteka"
+	BotName     = "SuperAppteka"
+	LocalDBPath = "db/tgbot"
 )
 
 func main() {
@@ -40,7 +44,28 @@ func main() {
 
 	aiClient := ai.NewClient(os.Getenv("AI_BASE_URL"))
 
+	// Open the BadgerDB database located at dbPath
+	opts := badger.DefaultOptions(LocalDBPath).WithLogger(nil)
+	db, err := badger.Open(opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	sessionRepo := session.NewSessionRepository(db)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	b.Handle("/start", func(c tele.Context) error {
+		if err := sessionRepo.CreateSession(&session.Session{
+			UserID:    fmt.Sprintf("%s", c.Sender().ID),
+			State:     consts.StateInSectionMain,
+			ExpiresAt: time.Now().Add(consts.UserSessionTTL),
+		}); err != nil {
+			return err
+		}
+
 		return c.Send(getWelcomeMessage(), menu)
 	})
 
@@ -79,6 +104,10 @@ func main() {
 
 	// Handle analysis
 	b.Handle(&btnAnalysis, func(c tele.Context) error {
+		return c.Edit("В этой секции вы можете отправить свои анализы (фото, скрины)", menu)
+	})
+
+	b.Handle(tele.OnPhoto, func(c tele.Context) error {
 		photo := c.Message().Photo
 
 		file, err := b.File(&photo.File)
