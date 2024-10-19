@@ -61,7 +61,7 @@ func main() {
 
 		resp, err := aiClient.SendAnalysis(getDefaultContext(), file)
 		if err != nil {
-			return err
+			return fmt.Errorf("send analysis: %w", err)
 		}
 
 		return c.Send(resp.Analytics)

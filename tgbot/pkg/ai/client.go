@@ -82,7 +82,7 @@ func (c *Client) SendAnalysis(
 	imageStr := base64.StdEncoding.EncodeToString(buf.Bytes())
 
 	resp, err := c.client.R().
-		SetHeader("Content-Type", "image").
+		SetHeader("Content-Type", "application/json").
 		SetBody(GetAnalysisRequest{
 			Image: imageStr,
 		}).
