@@ -10,5 +10,5 @@ const (
 )
 
 const (
-	UserSessionTTL = 2 * time.Hour * 24
+	UserSessionTTL = 100 * time.Hour * 24
 )

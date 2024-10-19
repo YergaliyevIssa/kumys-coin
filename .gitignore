@@ -1,3 +1,4 @@
 tgbot/bin/
 *.pyc
 __pycache__/
+tgbot/db
