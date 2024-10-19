@@ -28,10 +28,36 @@ func main() {
 		return
 	}
 
+	// Create a main menu with buttons
+	menu := &tele.ReplyMarkup{ResizeKeyboard: true}
+	btnProfile := menu.Text("👤 Profile")
+	btnAnalysis := menu.Text("Check analysis")
+
+	menu.Reply(
+		menu.Row(btnProfile),
+		menu.Row(btnAnalysis),
+	)
+
 	aiClient := ai.NewClient(os.Getenv("AI_BASE_URL"))
 
 	b.Handle("/start", func(c tele.Context) error {
-		return c.Send(getWelcomeMessage())
+		return c.Send(getWelcomeMessage(), menu)
+	})
+
+	// Handle Profile button
+	b.Handle(&btnProfile, func(c tele.Context) error {
+		user := c.Sender()
+		profile := fmt.Sprintf("👤 *Profile Information*\n\n"+
+			"Name: %s\n"+
+			"Username: @%s\n"+
+			"User ID: %d\n"+
+			"Language Code: %s",
+			user.FirstName+" "+user.LastName,
+			user.Username,
+			user.ID,
+			user.LanguageCode)
+
+		return c.Send(profile, &tele.SendOptions{ParseMode: tele.ModeMarkdown}, menu)
 	})
 
 	b.Handle(tele.OnText, func(c tele.Context) error {
@@ -42,16 +68,17 @@ func main() {
 			return err
 		}
 
-		for _, item := range resp.Recommendations {
+		for _, item := range resp.Diagnosises {
 			if err = c.Send(item); err != nil {
 				slog.Error("send failed", "err", err)
 			}
 		}
 
-		return nil
+		return c.Send("...", menu)
 	})
 
-	b.Handle(tele.OnPhoto, func(c tele.Context) error {
+	// Handle analysis
+	b.Handle(&btnAnalysis, func(c tele.Context) error {
 		photo := c.Message().Photo
 
 		file, err := b.File(&photo.File)
