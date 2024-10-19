@@ -1,4 +1,4 @@
-# Superappteka Bot
+# SmartDoc Bot
 
 A Telegram bot that helps users connect with various services in the superapp ecosystem.
 
