@@ -73,6 +73,8 @@ func main() {
 			return err
 		}
 
+		slog.Info("new user session", "userID", c.Sender().ID, "state", consts.StateInSectionMain)
+
 		return c.Send(getWelcomeMessage(), menu)
 	})
 
@@ -81,6 +83,8 @@ func main() {
 		if err := c.Send(SectionMainWelcome, menu); err != nil {
 			return err
 		}
+
+		slog.Info("change user state", "userID", c.Sender().ID, "state", consts.StateInSectionMain)
 
 		return sessionRepo.ChangeUserState(
 			fmt.Sprintf("%d", c.Sender().ID),
@@ -93,6 +97,8 @@ func main() {
 		if err := c.Send(SectionAnalysisWelcome, menu); err != nil {
 			return err
 		}
+
+		slog.Info("change user state", "userID", c.Sender().ID, "state", consts.StateInSectionAnalysis)
 
 		return sessionRepo.ChangeUserState(
 			fmt.Sprintf("%d", c.Sender().ID),
@@ -122,22 +128,27 @@ func main() {
 			return err
 		}
 
+		text := c.Text()
+
+		slog.Info("got text", "userID", c.Sender().ID, "text", text)
+
 		switch session.State {
 		case consts.StateInSectionMain:
-			text := c.Text()
+			slog.Info("got text in section main", "userID", c.Sender().ID, "state", session.State)
 
 			resp, err := aiClient.GetDiagnosises(getDefaultContext(), text)
 			if err != nil {
 				return err
 			}
 
+			slog.Info("send diagnoses", "userID", c.Sender().ID, "diagnoses", resp.Diagnosises)
 			for _, item := range resp.Diagnosises {
-				if err = c.Send(item); err != nil {
+				if err = c.Send(item, menu); err != nil {
 					slog.Error("send failed", "err", err)
 				}
 			}
 
-			return c.Send("...", menu)
+			return nil
 		case consts.StateChangingProfile:
 			//
 			return nil
@@ -152,9 +163,13 @@ func main() {
 			return err
 		}
 
+		photo := c.Message().Photo
+
+		slog.Info("got photo", "userID", c.Sender().ID, "photo size", photo.FileSize)
+
 		switch session.State {
 		case consts.StateInSectionAnalysis:
-			photo := c.Message().Photo
+			slog.Info("got text in section analysis", "userID", c.Sender().ID, "state", session.State)
 
 			file, err := b.File(&photo.File)
 			if err != nil {
@@ -166,10 +181,11 @@ func main() {
 				return err
 			}
 
-			return c.Send(resp.Analytics)
+			slog.Info("send analysis", "userID", c.Sender().ID, "analytics", resp.Analytics)
+			return c.Send(resp.Analytics, menu)
 		}
 
-		return nil
+		return c.Send("...", menu)
 	})
 
 	slog.Info("starting tgbot")
