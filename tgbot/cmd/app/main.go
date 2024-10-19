@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	BotName     = "SuperAppteka"
+	BotName     = "SmartDoc"
 	LocalDBPath = "db/tgbot"
 )
 
