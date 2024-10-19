@@ -4,16 +4,25 @@ import (
 	"context"
 	"fmt"
 	"kumys-coin/tgbot/pkg/ai"
+	"kumys-coin/tgbot/pkg/consts"
+	"kumys-coin/tgbot/pkg/session"
 	"log"
 	"log/slog"
 	"os"
 	"time"
 
+	"github.com/dgraph-io/badger/v3"
 	tele "gopkg.in/telebot.v4"
 )
 
 const (
-	BotName = "SuperAppteka"
+	BotName     = "SuperAppteka"
+	LocalDBPath = "db/tgbot"
+)
+
+const (
+	SectionMainWelcome     = `На что жалуйтесь?`
+	SectionAnalysisWelcome = `В этой секции вы можете отправить свои анализы (фото, скрины)`
 )
 
 func main() {
@@ -28,43 +37,155 @@ func main() {
 		return
 	}
 
+	// Create a main menu with buttons
+	menu := &tele.ReplyMarkup{ResizeKeyboard: true}
+	btnProfile := menu.Text("👤 Профиль")
+	btnAnalysis := menu.Text("Анализы")
+	btnMain := menu.Text("Главная")
+
+	menu.Reply(
+		menu.Row(btnMain),
+		menu.Row(btnProfile),
+		menu.Row(btnAnalysis),
+	)
+
 	aiClient := ai.NewClient(os.Getenv("AI_BASE_URL"))
 
+	// Open the BadgerDB database located at dbPath
+	opts := badger.DefaultOptions(LocalDBPath).WithLogger(nil)
+	db, err := badger.Open(opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	sessionRepo := session.NewSessionRepository(db)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	b.Handle("/start", func(c tele.Context) error {
-		return c.Send(getWelcomeMessage())
+		if err := sessionRepo.CreateSession(&session.Session{
+			UserID:    fmt.Sprintf("%d", c.Sender().ID),
+			State:     consts.StateInSectionMain,
+			ExpiresAt: time.Now().Add(consts.UserSessionTTL),
+		}); err != nil {
+			return err
+		}
+
+		slog.Info("new user session", "userID", c.Sender().ID, "state", consts.StateInSectionMain)
+
+		return c.Send(getWelcomeMessage(), menu)
+	})
+
+	// Handle main button
+	b.Handle(&btnMain, func(c tele.Context) error {
+		if err := c.Send(SectionMainWelcome, menu); err != nil {
+			return err
+		}
+
+		slog.Info("change user state", "userID", c.Sender().ID, "state", consts.StateInSectionMain)
+
+		return sessionRepo.ChangeUserState(
+			fmt.Sprintf("%d", c.Sender().ID),
+			consts.StateInSectionMain,
+		)
+	})
+
+	// Handle analysis button
+	b.Handle(&btnAnalysis, func(c tele.Context) error {
+		if err := c.Send(SectionAnalysisWelcome, menu); err != nil {
+			return err
+		}
+
+		slog.Info("change user state", "userID", c.Sender().ID, "state", consts.StateInSectionAnalysis)
+
+		return sessionRepo.ChangeUserState(
+			fmt.Sprintf("%d", c.Sender().ID),
+			consts.StateInSectionAnalysis,
+		)
+	})
+
+	// Handle Profile button
+	b.Handle(&btnProfile, func(c tele.Context) error {
+		user := c.Sender()
+		profile := fmt.Sprintf("👤 *Profile Information*\n\n"+
+			"Name: %s\n"+
+			"Username: @%s\n"+
+			"User ID: %d\n"+
+			"Language Code: %s",
+			user.FirstName+" "+user.LastName,
+			user.Username,
+			user.ID,
+			user.LanguageCode)
+
+		return c.Send(profile, &tele.SendOptions{ParseMode: tele.ModeMarkdown}, menu)
 	})
 
 	b.Handle(tele.OnText, func(c tele.Context) error {
-		text := c.Text()
-
-		resp, err := aiClient.GetDiagnosises(getDefaultContext(), text)
+		session, err := sessionRepo.GetSession(fmt.Sprintf("%d", c.Sender().ID))
 		if err != nil {
 			return err
 		}
 
-		for _, item := range resp.Recommendations {
-			if err = c.Send(item); err != nil {
-				slog.Error("send failed", "err", err)
+		text := c.Text()
+
+		slog.Info("got text", "userID", c.Sender().ID, "text", text)
+
+		switch session.State {
+		case consts.StateInSectionMain:
+			slog.Info("got text in section main", "userID", c.Sender().ID, "state", session.State)
+
+			resp, err := aiClient.GetDiagnosises(getDefaultContext(), text)
+			if err != nil {
+				return err
 			}
+
+			slog.Info("send diagnoses", "userID", c.Sender().ID, "diagnoses", resp.Diagnosises)
+			for _, item := range resp.Diagnosises {
+				if err = c.Send(item, menu); err != nil {
+					slog.Error("send failed", "err", err)
+				}
+			}
+
+			return nil
+		case consts.StateChangingProfile:
+			//
+			return nil
 		}
 
-		return nil
+		return c.Send("unexpected state", menu)
 	})
 
 	b.Handle(tele.OnPhoto, func(c tele.Context) error {
-		photo := c.Message().Photo
-
-		file, err := b.File(&photo.File)
+		session, err := sessionRepo.GetSession(fmt.Sprintf("%d", c.Sender().ID))
 		if err != nil {
 			return err
 		}
 
-		resp, err := aiClient.SendAnalysis(getDefaultContext(), file)
-		if err != nil {
-			return fmt.Errorf("send analysis: %w", err)
+		photo := c.Message().Photo
+
+		slog.Info("got photo", "userID", c.Sender().ID, "photo size", photo.FileSize)
+
+		switch session.State {
+		case consts.StateInSectionAnalysis:
+			slog.Info("got text in section analysis", "userID", c.Sender().ID, "state", session.State)
+
+			file, err := b.File(&photo.File)
+			if err != nil {
+				return err
+			}
+
+			resp, err := aiClient.SendAnalysis(getDefaultContext(), file)
+			if err != nil {
+				return err
+			}
+
+			slog.Info("send analysis", "userID", c.Sender().ID, "analytics", resp.Analytics)
+			return c.Send(resp.Analytics, menu)
 		}
 
-		return c.Send(resp.Analytics)
+		return c.Send("...", menu)
 	})
 
 	slog.Info("starting tgbot")

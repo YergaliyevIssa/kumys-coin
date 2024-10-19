@@ -24,36 +24,34 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
-type GetRecommendationsRequest struct {
+type GetDiagnosisesRequest struct {
 	Text string `json:"text"`
 }
 
-type Recommendation string
-
-type GetRecommendationsResponse struct {
-	Result          string   `json:"result"`
-	Recommendations []string `json:"recommendations"`
+type GetDiagnosisResponse struct {
+	Result      string   `json:"result"`
+	Diagnosises []string `json:"recommendations"`
 }
 
 func (c *Client) GetDiagnosises(
 	ctx context.Context,
 	userInput string,
-) (GetRecommendationsResponse, error) {
-	var respObj GetRecommendationsResponse
+) (GetDiagnosisResponse, error) {
+	var respObj GetDiagnosisResponse
 
 	resp, err := c.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(GetRecommendationsRequest{
+		SetBody(GetDiagnosisesRequest{
 			Text: userInput,
 		}).
 		SetResult(&respObj).
 		Post("/api/v1/ai_backend/diagnose/")
 	if err != nil {
-		return GetRecommendationsResponse{}, err
+		return GetDiagnosisResponse{}, err
 	}
 
 	if resp.StatusCode() != http.StatusOK {
-		return GetRecommendationsResponse{}, fmt.Errorf("get diagnosis: unexpected status code: %s", resp.Body())
+		return GetDiagnosisResponse{}, fmt.Errorf("get diagnosis: unexpected status code: %s", resp.Body())
 	}
 
 	return respObj, nil
