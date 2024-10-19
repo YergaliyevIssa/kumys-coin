@@ -9,6 +9,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/dgraph-io/badger/v3"
@@ -154,7 +155,7 @@ func main() {
 
 			slog.Info("send diagnoses", "userID", c.Sender().ID, "diagnoses", resp.Diagnosises)
 			for _, item := range resp.Diagnosises {
-				if err = c.Send(item, menu, &telebot.SendOptions{
+				if err = c.Send(escapeMarkdown(item), menu, &telebot.SendOptions{
 					ParseMode: telebot.ModeMarkdownV2,
 				}); err != nil {
 					slog.Error("send failed", "err", err)
@@ -195,7 +196,7 @@ func main() {
 			}
 
 			slog.Info("send analysis", "userID", c.Sender().ID, "analytics", resp.Analytics)
-			return c.Send(resp.Analytics, menu, &telebot.SendOptions{
+			return c.Send(escapeMarkdown(resp.Analytics), menu, &telebot.SendOptions{
 				ParseMode: telebot.ModeMarkdownV2,
 			})
 		}
@@ -216,4 +217,12 @@ func getWelcomeMessage() string {
 func getDefaultContext() context.Context {
 	ctx, _ := context.WithTimeout(context.Background(), time.Minute)
 	return ctx
+}
+
+func escapeMarkdown(text string) string {
+	specialChars := []string{"_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"}
+	for _, char := range specialChars {
+		text = strings.ReplaceAll(text, char, "\\"+char)
+	}
+	return text
 }
