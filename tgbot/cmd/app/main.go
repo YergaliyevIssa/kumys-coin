@@ -23,7 +23,7 @@ const (
 )
 
 const (
-	SectionMainWelcome     = `На что жалуйтесь?`
+	SectionMainWelcome     = `На что жалуетесь?`
 	SectionAnalysisWelcome = `В этой секции вы можете отправить свои анализы (фото, скрины)`
 )
 
