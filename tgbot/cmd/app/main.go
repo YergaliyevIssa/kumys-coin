@@ -144,6 +144,13 @@ func main() {
 		return c.Send(profile, &tele.SendOptions{ParseMode: tele.ModeMarkdown}, profileMenu)
 	})
 
+	b.Handle("/echo", func(c tele.Context) error {
+		text := c.Text()
+
+		slog.Info("got text", "text", text)
+		return c.Send(fmt.Sprintf("* привет *"), &tele.SendOptions{ParseMode: tele.ModeMarkdownV2})
+	})
+
 	b.Handle(tele.OnText, func(c tele.Context) error {
 		session, err := sessionRepo.GetSession(fmt.Sprintf("%d", c.Sender().ID))
 		if err != nil {
@@ -165,7 +172,7 @@ func main() {
 
 			slog.Info("send diagnoses", "userID", c.Sender().ID, "diagnoses", resp.Diagnosises)
 			for _, item := range resp.Diagnosises {
-				if err = c.Send(escapeMarkdown(item), menu, &telebot.SendOptions{
+				if err = c.Send(escapeMarkdown(item), &telebot.SendOptions{
 					ParseMode: telebot.ModeMarkdownV2,
 				}); err != nil {
 					slog.Error("send failed", "err", err)
