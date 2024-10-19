@@ -1,7 +1,9 @@
 package ai
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -29,7 +31,7 @@ type GetRecommendationsRequest struct {
 type Recommendation string
 
 type GetRecommendationsResponse struct {
-	Result          string           `json:"result"`
+	Result          string   `json:"result"`
 	Recommendations []string `json:"recommendations"`
 }
 
@@ -57,8 +59,12 @@ func (c *Client) GetDiagnosises(
 	return respObj, nil
 }
 
+type GetAnalysisRequest struct {
+	Image string `json:"image"`
+}
+
 type GetAnalysisResponse struct {
-	Result string `json:"result"`
+	Result    string `json:"result"`
 	Analytics string `json:"analytics"`
 }
 
@@ -67,10 +73,19 @@ func (c *Client) SendAnalysis(
 	photo io.ReadCloser,
 ) (GetAnalysisResponse, error) {
 	var respObj GetAnalysisResponse
+	buf := bytes.Buffer{}
+	_, err := io.Copy(&buf, photo)
+	if err != nil {
+		return GetAnalysisResponse{}, err
+	}
+
+	imageStr := base64.StdEncoding.EncodeToString(buf.Bytes())
 
 	resp, err := c.client.R().
 		SetHeader("Content-Type", "image").
-		SetBody(photo).
+		SetBody(GetAnalysisRequest{
+			Image: imageStr,
+		}).
 		SetResult(&respObj).
 		Post("/api/v1/ai_backend/analyze/")
 	if err != nil {
