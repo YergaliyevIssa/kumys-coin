@@ -103,6 +103,16 @@ func main() {
 		)
 	})
 
+	b.Handle("/testmarkdown", func(c tele.Context) error {
+		markdownText := "This is *bold*, _italic_, and `code`.\n" +
+			"[Link](https://example.com)\n" +
+			"```\nCode block\n```"
+
+		safeText := escapeMarkdown(markdownText)
+
+		return c.Send(safeText, telebot.ModeMarkdownV2)
+	})
+
 	// Handle analysis button
 	b.Handle(&btnAnalysis, func(c tele.Context) error {
 		if err := c.Send(SectionAnalysisWelcome, menu); err != nil {
