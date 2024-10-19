@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"kumys-coin/tgbot/pkg/ai"
 	"kumys-coin/tgbot/pkg/consts"
+	"kumys-coin/tgbot/pkg/doctors"
 	"kumys-coin/tgbot/pkg/session"
 	"log"
 	"log/slog"
@@ -169,6 +170,23 @@ func main() {
 					ParseMode: telebot.ModeMarkdownV2,
 				}); err != nil {
 					slog.Error("send failed", "err", err)
+				}
+			}
+
+			for _, doctor := range doctors.Doctors {
+				// Create a photo from a URL
+				photo := &tele.Photo{File: tele.FromURL(doctor.PhotoURL)}
+
+				// Send the photo with a caption
+				if err := c.Send(&tele.Photo{
+					File:    photo.File,
+					Caption: "This is a photo sent from a URL!",
+				}); err != nil {
+					slog.Error("send photo", "err", err)
+				}
+
+				if err := c.Send(doctor.String()); err != nil {
+					slog.Error("send doctor info", "err", err)
 				}
 			}
 
