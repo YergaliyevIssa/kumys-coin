@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-
+import base64
 
 from gemini import gemini
 
@@ -65,9 +65,11 @@ class Analyze(APIView):
         }
     )
     def post(self, request):
-        image = request.data
+        image = request.data['image']
+        g = gemini.Gemini()
+        result = g.generate_content_from_image(image)
 
         return Response({
             "result": "success",
-            "analytics": "Hello World",
+            "analytics": result,
         })
