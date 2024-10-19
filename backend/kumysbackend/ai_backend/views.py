@@ -69,5 +69,5 @@ class Analyze(APIView):
 
         return Response({
             "result": "success",
-            "analytics": [],
+            "analytics": "Hello World",
         })

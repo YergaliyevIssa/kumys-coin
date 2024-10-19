@@ -58,7 +58,8 @@ func (c *Client) GetDiagnosises(
 }
 
 type GetAnalysisResponse struct {
-	Text string `json:"text"`
+	Result string `json:"result"`
+	Analytics string `json:"analytics"`
 }
 
 func (c *Client) SendAnalysis(
@@ -68,10 +69,10 @@ func (c *Client) SendAnalysis(
 	var respObj GetAnalysisResponse
 
 	resp, err := c.client.R().
-		SetHeader("Content-Type", "application/json").
+		SetHeader("Content-Type", "image").
 		SetBody(photo).
 		SetResult(&respObj).
-		Post("/api/v1/ai_backend/analysis")
+		Post("/api/v1/ai_backend/analyze/")
 	if err != nil {
 		return GetAnalysisResponse{}, err
 	}

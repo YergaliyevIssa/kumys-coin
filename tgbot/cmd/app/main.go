@@ -64,7 +64,7 @@ func main() {
 			return err
 		}
 
-		return c.Send(resp.Text)
+		return c.Send(resp.Analytics)
 	})
 
 	slog.Info("starting tgbot")
