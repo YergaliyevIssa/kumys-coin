@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger/v3"
+	"gopkg.in/telebot.v4"
 	tele "gopkg.in/telebot.v4"
 )
 
@@ -47,6 +48,15 @@ func main() {
 		menu.Row(btnMain),
 		menu.Row(btnProfile),
 		menu.Row(btnAnalysis),
+	)
+
+	// Create a profile menu
+	profileMenu := &tele.ReplyMarkup{ResizeKeyboard: true}
+	btnProfileChange := menu.Text("Изменить данные")
+
+	profileMenu.Reply(
+		menu.Row(btnProfileChange),
+		menu.Row(btnMain),
 	)
 
 	aiClient := ai.NewClient(os.Getenv("AI_BASE_URL"))
@@ -108,6 +118,7 @@ func main() {
 
 	// Handle Profile button
 	b.Handle(&btnProfile, func(c tele.Context) error {
+
 		user := c.Sender()
 		profile := fmt.Sprintf("👤 *Profile Information*\n\n"+
 			"Name: %s\n"+
@@ -119,7 +130,7 @@ func main() {
 			user.ID,
 			user.LanguageCode)
 
-		return c.Send(profile, &tele.SendOptions{ParseMode: tele.ModeMarkdown}, menu)
+		return c.Send(profile, &tele.SendOptions{ParseMode: tele.ModeMarkdown}, profileMenu)
 	})
 
 	b.Handle(tele.OnText, func(c tele.Context) error {
@@ -143,7 +154,9 @@ func main() {
 
 			slog.Info("send diagnoses", "userID", c.Sender().ID, "diagnoses", resp.Diagnosises)
 			for _, item := range resp.Diagnosises {
-				if err = c.Send(item, menu); err != nil {
+				if err = c.Send(item, menu, &telebot.SendOptions{
+					ParseMode: telebot.ModeMarkdownV2,
+				}); err != nil {
 					slog.Error("send failed", "err", err)
 				}
 			}
@@ -182,7 +195,9 @@ func main() {
 			}
 
 			slog.Info("send analysis", "userID", c.Sender().ID, "analytics", resp.Analytics)
-			return c.Send(resp.Analytics, menu)
+			return c.Send(resp.Analytics, menu, &telebot.SendOptions{
+				ParseMode: telebot.ModeMarkdownV2,
+			})
 		}
 
 		return c.Send("...", menu)
